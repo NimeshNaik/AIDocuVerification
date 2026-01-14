@@ -110,6 +110,7 @@ This backend exposes tools for AI agents (like Claude Desktop) to invoke documen
 | `verify_document` | Verify a document image (base64) and get extraction + recommendation. |
 | `validate_id_number` | Validate the format of an Indian ID number (Aadhaar, PAN, etc.). |
 | `get_supported_documents` | List all document types supported by the system. |
+| `upscale_document` | Upscale a low-quality document image by 4x. |
 
 ### Configuration for Claude Desktop
 

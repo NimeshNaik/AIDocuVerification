@@ -25,6 +25,7 @@ from mcp.types import (
 from app.services.pipeline import run_verification_pipeline
 from app.services.validator import validate_fields
 from app.schemas.document import DocumentType
+from app.services.upscaler import upscaler
 
 # Create MCP server instance
 server = Server("document-verification")
@@ -102,6 +103,25 @@ Returns validation result with any errors found.""",
                 "type": "object",
                 "properties": {}
             }
+        ),
+        Tool(
+            name="upscale_document",
+            description="""Upscale a low-quality document image by 4x using Swin2SR.
+            
+Target Use Case: enhance blurry or low-resolution images before verification to improve accuracy.
+
+Input: Base64-encoded image
+Output: Base64-encoded upscaled image (JPEG)""",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "image_base64": {
+                        "type": "string",
+                        "description": "Base64-encoded image to upscale"
+                    }
+                },
+                "required": ["image_base64"]
+            }
         )
     ]
 
@@ -118,6 +138,9 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     
     elif name == "get_supported_documents":
         return await handle_get_supported_documents()
+
+    elif name == "upscale_document":
+        return await handle_upscale_document(arguments)
     
     else:
         return [TextContent(
@@ -285,6 +308,58 @@ async def handle_get_supported_documents() -> list[TextContent]:
             "total": len(documents)
         }, indent=2)
     )]
+
+
+async def handle_upscale_document(arguments: dict[str, Any]) -> list[TextContent]:
+    """Handle document upscaling tool call."""
+    try:
+        image_base64 = arguments.get("image_base64", "")
+        
+        if not image_base64:
+             return [TextContent(
+                type="text",
+                text=json.dumps({
+                    "success": False,
+                    "error": "No image_base64 provided"
+                })
+            )]
+
+        # Decode base64 image
+        try:
+            image_bytes = base64.b64decode(image_base64)
+        except Exception as e:
+            return [TextContent(
+                type="text",
+                text=json.dumps({
+                    "success": False,
+                    "error": f"Invalid base64 image: {str(e)}"
+                })
+            )]
+        
+        # Run upscaling
+        upscaled_bytes = upscaler.upscale_image(image_bytes)
+        
+        # Encode back to base64
+        upscaled_base64 = base64.b64encode(upscaled_bytes).decode("utf-8")
+        
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "success": True,
+                "original_size": len(image_bytes),
+                "upscaled_size": len(upscaled_bytes),
+                "upscaled_image": upscaled_base64
+            }, indent=2)
+        )]
+        
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "success": False,
+                "error": str(e)
+            })
+        )]
 
 
 async def main():
