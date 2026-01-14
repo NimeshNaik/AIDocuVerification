@@ -1,0 +1,1 @@
+"""Document Verification Platform Backend."""

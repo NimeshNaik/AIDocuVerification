@@ -1,0 +1,17 @@
+{
+    "mcpServers": {
+        "document-verification": {
+            "command": "python",
+            "args": [
+                "-m",
+                "app.mcp_server"
+            ],
+            "cwd": "/path/to/Capstone/backend",
+            "env": {
+                "SUPABASE_URL": "your_supabase_url",
+                "SUPABASE_KEY": "your_supabase_key",
+                "VLM_API_KEY": "your_openrouter_key"
+            }
+        }
+    }
+}
