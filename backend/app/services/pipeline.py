@@ -79,6 +79,21 @@ async def run_verification_pipeline(
     # Step 1: Extract fields using VLM
     extraction_result = await extract_fields(file_content, content_type)
     
+    # Check for document validity first
+    is_valid_doc = extraction_result.get("is_indian_government_id", True)
+    if not is_valid_doc:
+        rejection_reason = extraction_result.get("rejection_reason", "Not a valid Indian Government ID")
+        return VerificationResult(
+            request_id=request_id,
+            document_type=DocumentType.UNKNOWN,
+            confidence_score=0.0,
+            fields={},
+            validation_errors=[rejection_reason],
+            fraud_signals=[],
+            recommendation=Recommendation.REJECT,
+            explanation=rejection_reason
+        )
+
     # Determine document type
     if document_type_hint:
         doc_type = DocumentType(document_type_hint.lower())

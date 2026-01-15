@@ -15,13 +15,9 @@ settings = get_settings()
 EXTRACTION_PROMPT = """You are an expert government document verification specialist. 
 Your task is to analyze Indian government ID documents for authenticity, extract specific information, and detect potential fraud.
 
-**PART 1: EXTRACTION**
-Extract the following fields from the document:
-1. Document Type (aadhaar, pan, voter_id, driving_license, passport, or unknown)
-2. Full Name (as written on the document)
-3. Date of Birth (DD-MM-YYYY format preferred)
-4. ID Number (the primary unique identifier)
-5. Any other information that is available on the document in label value pairs
+**PART 1: DOCUMENT VALIDATION**
+First, determine if this image is a valid Indian Government ID document (Aadhaar, PAN, Voter ID, Driving License, Passport, Birth Certificate).
+If the image is NOT an Indian Government ID (e.g., random object, scenery, animal, non-ID document), mark `is_indian_government_id` as `false` and provide a reason.
 
 **PART 2: FORENSIC ANALYSIS & FRAUD DETECTION**
 Critically analyze the document for detailed fraud indicators. You must Reason about the document's validity.
@@ -33,9 +29,26 @@ Check for the following speicifcally:
 5. **Physical Anomalies**: Look for torn edges, shadows, or lighting that suggest a real physical card vs a digital screenshot.
 6. **Person's photo**: Is the photo of the person in document an photo of an actual person? If the photo is not proper or not visible, mark it as suspicious.
 
+**PART 3: EXTRACTION**
+Extract the following fields from the document.
+**IMPORTANT: Regional Language Handling**
+- If the document contains text in local regional Indian languages (e.g., Hindi, Kannada, Tamil, etc.), you MUST translate/transliterate it into English.
+- Ensure all extracted names and addresses are in English characters.
+
+Extract:
+1. Document Type (aadhaar, pan, voter_id, driving_license, passport, birth_certificate, or unknown)
+2. Full Name (as written on the document, English only)
+3. Date of Birth (DD-MM-YYYY format preferred)
+4. ID Number (the primary unique identifier)
+5. Any other information that is available on the document in label value pairs
+
+
+
 **OUTPUT FORMAT**
 Return a SINGLE JSON object with this exact structure:
 {
+    "is_indian_government_id": true/false,
+    "rejection_reason": "Reason if not a valid ID, null otherwise",
     "document_type": "string",
     "confidence": 0.0-1.0,
     "fields": {
@@ -110,12 +123,12 @@ async def extract_fields_openrouter(image_bytes: bytes, content_type: str) -> Di
                         ]
                     }
                 ],
-                "max_tokens": 2048,
+                "max_tokens": 15000,
                 "temperature": 0.1
             },
             timeout=60.0  # Longer timeout for vision models
         )
-        
+
         if response.status_code != 200:
             error_detail = response.text
             raise Exception(f"OpenRouter API error ({response.status_code}): {error_detail}")

@@ -10,6 +10,7 @@ class DocumentType(str, Enum):
     VOTER_ID = "voter_id"
     DRIVING_LICENSE = "driving_license"
     PASSPORT = "passport"
+    BIRTH_CERTIFICATE = "birth_certificate"
     UNKNOWN = "unknown"
 
 
